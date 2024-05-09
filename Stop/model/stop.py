@@ -8,6 +8,12 @@ class Jugador:
         self.puntaje: float = 0
         self.id: str = uuid.uuid1()
 
+class Categoria:
+    def __init__(self, categoria: str, lista_palabras: list):
+        self.categoria = categoria
+        self.lista_palabras = lista_palabras
+
+
 class Configuracion:
     def __init__(self,dificultad: str) -> None:
         self.dificultad:str = dificultad
@@ -24,13 +30,12 @@ class Configuracion:
         elif self.dificultad.lower() == "dificil":
             Letra = random.choice(dificil)
             return Letra 
-        else:
-            return False  
 
 class Verificacion:
-    def __init__(self, Letra: str, palabra_utilizada: str):
+    def __init__(self, Letra: str, palabra_utilizada: str, categoria: Categoria):
         self.letra: str = Letra
         self.palabra = palabra_utilizada
+        self.categorias_stop = categoria
 
     def contiene_solo_letras(self):
         if not re.match(r'^[a-zA-Z]+$', self.palabra):
@@ -44,8 +49,8 @@ class Verificacion:
         else:
             return True
     
-    def verificar_categoria(self,lista_categoria: list):
-        if self.palabra not in lista_categoria:
+    def verificar_categoria(self):
+        if self.palabra not in self.categorias_stop.lista_palabras:
             return False
         else:
             return True
@@ -54,27 +59,26 @@ class Verificacion:
 class Multijugador:
     def __init__(self,numero_jugadores: int):
         self.numero_jugadores = numero_jugadores
-    def crear_jugador(self,nombre):
-        lista_jugadores = []
-        jugador = Jugador(nombre)
-        lista_jugadores.append(jugador)
+    def crear_jugador(self):
+        i = 0
+        for i in range(self.numero_jugadores + 1):
+            lista_jugadores = []
+            nombre = input("Ingrese nombre del jugador")
+            jugador = Jugador(nombre)
+            i+=1
+            lista_jugadores.append(jugador)
         return lista_jugadores
     
 class Score:
-    def __init__(self, verificado: Verificacion, tiempo: float):
+    def __init__(self, verificado: Verificacion):
         self.verificado = verificado
-        self.tiempo = tiempo
-    def asignar_score(self,lista_categoria: list):
-        if self.verificado.contiene_solo_letras() and self.verificado.verificar_categoria(lista_categoria) and self.verificado.verificar_letra():
+    def asignar_score(self):
+        if self.verificado.contiene_solo_letras() and self.verificado.verificar_categoria() and self.verificado.verificar_letra():
             score = 500
             return score
         else:
             score = 0
             return score
-    def score_total(self):
-        total = 0
-        total += self.asignar_score()  
-        return total - 1*self.tiempo
 
 class Global:
     def __init__(self, score: Score, jugador: Jugador):
@@ -84,36 +88,55 @@ class Global:
         if jugador_id == self.jugador.id:
             self.jugador.puntaje += self.score.score_total()
 
-class Agregar:
-    def __init__(self, palabra: str, categoria: str):
-        self.palabra = palabra
-        self.categoria = categoria
-    def agregar_palabra(self, categorias: list, lista_categoria: list):
-        if self.categoria in categorias:
-            lista_categoria.append(self.palabra)
-
-class Eliminar:
-    def __init__(self, palabra: str, categoria: str):
-        self.palabra = palabra
-        self.categoria = categoria
-    def eliminar_palabra(self, categorias: list, lista_categoria: list):
-        if self.categoria in categorias:
-            lista_categoria.remove(self.palabra)
-
-class Modificar:
-    def __init__(self, palabra: str, categoria: str):
-        self.palabra = palabra
-        self.categoria = categoria
-    def modificar_palabra(self, categorias: list, lista_categoria: list):
-        if self.categoria in categorias:
-            lista_categoria.remove(self.palabra)
+class Administrador:
+    def __init__(self):
+        self.contraseña = "PepitA4343"
+    def verificar_admin(self, contraseña: str):
+        if self.contraseña == contraseña:
+            return True
+        else:
+            return False
+    def agregar_palabra(self,palabra: str, categoria: Categoria):
+        if palabra not in categoria.lista_palabras:
+            categoria.lista_palabras.append(palabra)
+    def eliminar_palabra(self,palabra: str, categoria: Categoria):
+        if palabra in categoria.lista_palabras:
+            categoria.lista_palabras.remove(palabra)
+    def modificar_palabra(self,palabra: str, categoria: Categoria):
+        if palabra in categoria.lista_palabras:
+            categoria.lista_palabras.remove(palabra)
             modificado = input("Agrege la palabra modificada: ")
-            lista_categoria.append(modificado)
+            categoria.lista_palabras.append(modificado)
+    def agregar_categoria(self, nueva_categoria: Categoria, lista_categorias: list[Categoria]):
+        if nueva_categoria not in lista_categorias:
+            lista_categorias.append(nueva_categoria)
 
-class Categoria:
-    def __init__(self, categoria: str, lista_categoria: list):
-        self.categoria = categoria
-        self.lista_categoria = lista_categoria
-    def agregar_categoria_nueva(self,categorias: list):
-        if self.categoria not in categorias:
-            categorias.append(self.categoria)
+class Stop:
+    def __init__(self) -> None:
+        self.jugadores: Multijugador =  []
+        self.administrador: Administrador = Administrador()
+        self.categorias: list[Categoria] = []
+        self.configuracion_juego: Configuracion  = Configuracion()
+        self.verificacion: Verificacion = Verificacion()
+        self.scores_jugador: Score = Score()
+        self.global_jugador: Global = Global()
+    def cantidad_jugadores(self, numero_jugadores: int):
+        self.jugadores = Multijugador(numero_jugadores)
+        return self.jugadores
+    def entrada_admin(self, contraseña: str):
+        if self.administrador.verificar_admin(contraseña):
+            return True
+        else:
+            return False
+    def letra_juego(self,dificultad: str):
+        return self.configuracion_juego.configurar_partida(dificultad)
+    def verificacion_palabras(self,palabra: str,letra:str, categoria: Categoria,tiempo:float):
+        total = 0
+        for categoria in self.categorias:
+            self.verificacion = Verificacion(letra,palabra,categoria)
+            score = Score(self.verificacion).asignar_score()
+            total += score
+        return total-(1*tiempo)
+    def total_jugador(self,total: float, jugador: Jugador):
+        pass
+
