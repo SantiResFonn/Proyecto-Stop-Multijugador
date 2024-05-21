@@ -57,17 +57,12 @@ class Verificacion:
 
 
 class Multijugador:
-    def __init__(self,numero_jugadores: int):
-        self.numero_jugadores = numero_jugadores
-    def crear_jugador(self):
-        i = 0
-        for i in range(self.numero_jugadores + 1):
-            lista_jugadores = []
-            nombre = input("Ingrese nombre del jugador")
-            jugador = Jugador(nombre)
-            i+=1
-            lista_jugadores.append(jugador)
-        return lista_jugadores
+    def __init__(self):
+        self.lista_jugadores = []
+    def crear_jugador(self, nombre: str):
+        jugador = Jugador(nombre)
+        self.lista_jugadores.append(jugador)
+        return self.lista_jugadores
     
 class Score:
     def __init__(self, verificado: Verificacion):
@@ -91,21 +86,15 @@ class Global:
 class Administrador:
     def __init__(self):
         self.contraseña = "PepitA4343"
-    def verificar_admin(self, contraseña: str):
-        if self.contraseña == contraseña:
-            return True
-        else:
-            return False
     def agregar_palabra(self,palabra: str, categoria: Categoria):
         if palabra not in categoria.lista_palabras:
             categoria.lista_palabras.append(palabra)
     def eliminar_palabra(self,palabra: str, categoria: Categoria):
         if palabra in categoria.lista_palabras:
             categoria.lista_palabras.remove(palabra)
-    def modificar_palabra(self,palabra: str, categoria: Categoria):
+    def modificar_palabra(self,palabra: str, categoria: Categoria, modificado: str):
         if palabra in categoria.lista_palabras:
             categoria.lista_palabras.remove(palabra)
-            modificado = input("Agrege la palabra modificada: ")
             categoria.lista_palabras.append(modificado)
     def agregar_categoria(self, nueva_categoria: Categoria, lista_categorias: list[Categoria]):
         if nueva_categoria not in lista_categorias:
@@ -116,18 +105,19 @@ class Stop:
         self.jugadores: Multijugador =  []
         self.administrador: Administrador = Administrador()
         self.categorias: list[Categoria] = []
-        self.configuracion_juego: Configuracion  = Configuracion()
-        self.verificacion: Verificacion = Verificacion()
-        self.scores_jugador: Score = Score()
-        self.global_jugador: Global = Global()
-    def cantidad_jugadores(self, numero_jugadores: int):
-        self.jugadores = Multijugador(numero_jugadores)
-        return self.jugadores
-    def entrada_admin(self, contraseña: str):
-        if self.administrador.verificar_admin(contraseña):
-            return True
-        else:
-            return False
+        self.configuracion_juego: Configuracion  = None
+        self.verificacion: Verificacion = None
+        self.scores_jugador: Score = None
+        self.global_jugador: Global = None
+    def modificar_palabra(self, palabra:str, lista_categorias: list[Categoria], modificado:str):
+        for categoria in lista_categorias:
+            self.administrador.modificar_palabra(palabra, categoria, modificado)
+    def eliminar_palabra(self, palabra:str, lista_categorias: list[Categoria]):
+        for categoria in lista_categorias:
+            self.administrador.eliminar_palabra(palabra, categoria)
+    def agregar_palabra(self, palabra:str, lista_categorias: list[Categoria]):
+        for categoria in lista_categorias:
+            self.administrador.agregar_palabra(palabra, categoria)
     def letra_juego(self,dificultad: str):
         return self.configuracion_juego.configurar_partida(dificultad)
     def verificacion_palabras(self,palabra: str,letra:str, categoria: Categoria,tiempo:float):

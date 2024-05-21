@@ -1,5 +1,7 @@
-from Stop.view.console import UIConsola
+from view.console import StopGame
+import tkinter as tk
 
 if __name__ == "__main__":
-    consola = UIConsola()
-    consola.ejecutar_juego()
+    root = tk.Tk()
+    app = StopGame(root)
+    root.mainloop()
