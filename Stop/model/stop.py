@@ -1,17 +1,38 @@
 import random
 import uuid
 import re
+import pickle
 
 class Jugador:
     def __init__(self,nombre: str) -> None:
         self.nombre: str = nombre
-        self.puntaje: float = 0
+        self.puntaje_total: float = 0
+        self.puntaje_parcial: float = 0
         self.id: str = uuid.uuid1()
+    def asignar_puntaje_total(self):
+        self.puntaje_total += self.puntaje_parcial
+    def reiniciar_puntaje_parcial(self):
+        self.puntaje_parcial = 0
 
 class Categoria:
     def __init__(self, categoria: str, lista_palabras: list):
         self.categoria = categoria
         self.lista_palabras = lista_palabras
+
+
+class Historial:
+    def __init__(self, jugador_ganador, numero_partidas):
+        self.ganador = jugador_ganador
+        self.numero_partidas = numero_partidas
+
+class DatosStop:
+    def __init__(self) -> None:
+        self.datos_categoria = open("datos_guardados_categoria.pickle", "wb")
+        self.datos_historial = open("datos_guardados_historial.pickle", "wb")
+    def guardar_lista_categorias(self, lista_categoria: list[Categoria]):
+        pickle.dump(self.datos_categoria,lista_categoria)
+    def guardar_lista_historial(self, lista_historial: list[Historial]):
+        pickle.dump(self.datos_historial,lista_historial)
 
 
 class Configuracion:
@@ -75,13 +96,6 @@ class Score:
             score = 0
             return score
 
-class Global:
-    def __init__(self, score: Score, jugador: Jugador):
-        self.score = score
-        self.jugador = jugador
-    def sumar_global(self,jugador_id: str):
-        if jugador_id == self.jugador.id:
-            self.jugador.puntaje += self.score.score_total()
 
 class Administrador:
     def __init__(self):
@@ -102,13 +116,21 @@ class Administrador:
 
 class Stop:
     def __init__(self) -> None:
-        self.jugadores: Multijugador =  []
+        self.jugadores_juego: Multijugador =  []
         self.administrador: Administrador = Administrador()
-        self.categorias: list[Categoria] = []
         self.configuracion_juego: Configuracion  = None
         self.verificacion: Verificacion = None
         self.scores_jugador: Score = None
-        self.global_jugador: Global = None
+        self.historial: Historial = None
+    def configuracion_partida(self,dificultad: str):
+        self.configuracion_juego = Configuracion(dificultad)
+        letra = self.configuracion_juego.configurar_partida()
+        return letra
+    def jugadores(self, lista_jugadores: list[str]):
+        self.jugadores_juego = Multijugador()
+        for nombre in range(lista_jugadores):
+            lista = self.jugadores_juego.crear_jugador(nombre)
+            return lista
     def modificar_palabra(self, palabra:str, lista_categorias: list[Categoria], modificado:str):
         for categoria in lista_categorias:
             self.administrador.modificar_palabra(palabra, categoria, modificado)
@@ -127,6 +149,9 @@ class Stop:
             score = Score(self.verificacion).asignar_score()
             total += score
         return total-(1*tiempo)
-    def total_jugador(self,total: float, jugador: Jugador):
-        pass
-
+    def asignar_registro_historial(self, jugador: Jugador, partidas: int):
+        historial = Historial(jugador, partidas)
+        return historial
+    def crear_archivo(self):
+        archivo = DatosStop()
+        return archivo
