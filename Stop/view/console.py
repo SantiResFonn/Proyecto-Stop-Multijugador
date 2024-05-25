@@ -2,7 +2,7 @@ import tkinter as tk
 import model.stop as st
 from tkinter import messagebox
 import time as tm
-import pickle
+
 
 class StopGame:
     def __init__(self, master):
@@ -10,25 +10,18 @@ class StopGame:
         self.master.title("Juego Stop")
         self.master.geometry("900x500")
         self.stop = st.Stop()
-        self.archivo = st.DatosStop()
+        self.dificultad_juego = None
         self.index = 0
         self.numero_partida = 1
-        self.lista_registro: list[st.Historial]= []
-        self.lista_categorias: list[st.Categoria] = []
+        self.letra = None
+        self.lista_jugadores = None
+        self.lista_registro: list[st.Historial]= self.stop.abrir_archivo_historial()
+        self.lista_categorias: list[st.Categoria] = self.stop.abrir_archivo_categoria()
         self.bienvenida()
-
-    def cargar_Archivos_registro(self):
-        with open("datos_guardados_historial.pickle", "rb") as archivo:
-            self.lista_registro = pickle.load(archivo)
-    def cargar_Archivos_categoria(self):
-        with open("datos_guardados_categoria.pickle", "rb") as archivo:
-            self.lista_categorias = pickle.load(archivo)
 
     def bienvenida(self):
         self.config_frame = tk.Frame(self.master)
         self.config_frame.pack()
-        # self.cargar_Archivos_categoria()
-        # self.cargar_Archivos_registro()
         tk.Label(self.config_frame, text="Bienvenido al juego de stop").pack()
         
         tk.Label(self.config_frame, text="Elige alguna opcion: ").pack()
@@ -39,7 +32,7 @@ class StopGame:
         self.admin_button.pack()
         self.historial_button = tk.Button(self.config_frame, text="Historial de partidas", command=self.historial)
         self.historial_button.pack()
-        self.exit_button = tk.Button(self.config_frame, text="Iniciar Juego", command=self.master.quit)
+        self.exit_button = tk.Button(self.config_frame, text="Cerrar juego", command=self.master.quit)
         self.exit_button.pack()
 
         
@@ -50,67 +43,77 @@ class StopGame:
         tk.Label(self.name_frame, text="Ingrese la cantidad de jugadores").pack()
         self.lbl_cantidad = tk.Entry(self.name_frame)
         self.lbl_cantidad.pack()
-        self.continue_button = tk.Button(self.name_frame, text="Siguiente", command=lambda: self.nombre_jugadores)
+        self.continue_button = tk.Button(self.name_frame, text="Siguiente", command= self.nombre_jugadores)
         self.continue_button.pack()
 
     def nombre_jugadores(self):
         self.name_frame.pack_forget()
         self.entrada_frame = tk.Frame(self.master)
         self.entrada_frame.pack(pady=20)
-        self.lista_nombres = []
+        self.entradas_jugadores = []
         try:
             numero_jugadores = int(self.lbl_cantidad.get())
             for i in range(numero_jugadores):
                 tk.Label(self.entrada_frame, text=f"Ingrese el nombre del jugador{i+1}").pack()
                 self.nombre_jugador = tk.Entry(self.entrada_frame)
                 self.nombre_jugador.pack()
-                self.lista_nombres.append(self.nombre_jugador.get())
+                self.entradas_jugadores.append(self.nombre_jugador)
         except ValueError:
+            self.entrada_frame.pack_forget()
+            self.ejecucion_juego()
             messagebox.showerror("Error","Ingrese un numero entero porfavor")
-        self.continue_button = tk.Button(self.entrada_frame, text="Siguiente", command= lambda: self.configuracion_partida)
+        self.continue_button = tk.Button(self.entrada_frame, text="Siguiente", command= self.configuracion_partida)
         self.continue_button.pack()
 
-    def dificultad(self):
-        dificultad = self.lbl_dificultad.get()
-        try:
-            self.partidas = int(self.lbl_partidas.get())
-        except ValueError:
-            messagebox.showerror("Error","Ingrese un numero entero porfavor")
-        self.letra = st.Stop.configuracion_partida(dificultad)
-        self.lista_jugadores = st.Stop.jugadores(self.lista_nombres)
-        self.stop_game()
     
     def configuracion_partida(self):
         self.entrada_frame.pack_forget()
         self.configuracion_frame = tk.Frame(self.master)
         self.configuracion_frame.pack(pady=20)
+        self.lista_nombres = [entry.get for entry in self.entradas_jugadores]
         tk.Label(self.configuracion_frame, text="Ingrese la dificultad del juego (facil,normal,dificil)").pack()
         self.lbl_dificultad= tk.Entry(self.configuracion_frame)
         self.lbl_dificultad.pack()
         tk.Label(self.configuracion_frame, text="Ingrese el numero de partidas que desean jugar").pack()
         self.lbl_partidas= tk.Entry(self.configuracion_frame)
         self.lbl_partidas.pack()
-        self.continue_button = tk.Button(self.entrada_frame, text="Siguiente", command= lambda: self.dificultad)
+        self.continue_button = tk.Button(self.configuracion_frame, text="Siguiente", command= self.dificultad)
         self.continue_button.pack()
+    
+    def dificultad(self):
+        self.dificultad_juego = self.lbl_dificultad.get()
+        self.letra = self.stop.letra_juego(self.dificultad_juego)
+        try:
+            self.partidas = int(self.lbl_partidas.get())
+            if self.partidas == 0:
+                messagebox.showerror("Error","Ingrese un numero entero porfavor")
+            else:
+                self.letra = st.Stop.configuracion_partida(self, self.dificultad_juego)
+                self.lista_jugadores = st.Stop.jugadores(self, self.lista_nombres)
+                self.stop_game()
+        except ValueError:
+            messagebox.showerror("Error","Ingrese un numero entero porfavor")
         
     def stop_game(self):
         self.configuracion_frame.pack_forget()
         self.inicio = tm.time()
         self.stop_game_frame = tk.Frame(self.master)
         self.stop_game_frame.pack(pady=20)
-        self.listado_palabra = []
+        self.entrada_palabras = []
+        tk.Label(self.stop_game_frame, text=f"Se va a jugar con la letra:  {self.letra}").pack()
         tk.Label(self.stop_game_frame, text=f"Turno del jugador {self.lista_jugadores[self.index].nombre}").pack()
         for categoria in self.lista_categorias:
             tk.Label(self.stop_game_frame, text=f"{categoria.categoria}").pack()
             self.lbl_palabra= tk.Entry(self.stop_game_frame)
             self.lbl_palabra.pack()
-            self.listado_palabra.append(self.lbl_palabra.get())
-        self.continue_button = tk.Button(self.stop_game_frame, text="Siguiente", command= lambda: self.verificar_palabras)
+            self.entrada_palabras.append(self.lbl_palabra)
+        self.continue_button = tk.Button(self.stop_game_frame, text="Siguiente", command= self.verificar_palabras)
         self.continue_button.pack()
     
     def verificar_palabras(self):
         self.final = tm.time()
         total_jugador = 0
+        self.listado_palabra = [entry.get() for entry in self.entrada_palabras]
         for palabra in self.listado_palabra:
             for categoria in self.lista_categorias:
                 puntaje = st.Stop.verificacion_palabras(palabra,self.letra,categoria,self.final)
@@ -162,7 +165,7 @@ class StopGame:
         self.bienvenida() 
     def retornar_admin(self,ventana):
         ventana.pack_forget()
-        self.admin_confi()
+        self.ventana_admin()
     def admin_confi(self):
         self.config_frame.pack_forget()
         self.admin_frame = tk.Frame(self.master)
@@ -226,7 +229,7 @@ class StopGame:
         self.ventana_admin_frame.pack_forget()
         self.agregar_frame = tk.Frame(self.master)
         self.agregar_frame.pack(pady=20)
-        tk.Label(self.agregar_frame, text="Ingrese la palabra a eliminar:").pack()
+        tk.Label(self.agregar_frame, text="Ingrese la palabra que quiere agregar:").pack()
         self.agregar_palabra = tk.Entry(self.agregar_frame)
         self.agregar_palabra.pack()
         self.agregar_button = tk.Button(self.agregar_frame, text="Agregar palabra", command= lambda: self.modificardor)
@@ -239,11 +242,11 @@ class StopGame:
         self.agregar_categoria_frame.pack(pady=20)
         tk.Label(self.agregar_categoria_frame, text="Ingrese el nombre de la cateogira").pack()
         self.nombre_categoria = tk.Entry(self.agregar_categoria_frame)
-        self.nombre_categoria()
+        self.nombre_categoria.pack()
         tk.Label(self.agregar_categoria_frame, text="Ingrese la lista de palabras para la categoria:").pack()
         self.lista_palabras = tk.Entry(self.agregar_categoria_frame)
         self.lista_palabras.pack()
-        self.agregar_categoria_button = tk.Button(self.agregar_categoria_frame, text="Agregar categoria", command= lambda: self.agregrar_categoria)
+        self.agregar_categoria_button = tk.Button(self.agregar_categoria_frame, text="Agregar categoria", command= self.agregrar_categoria)
         self.agregar_categoria_button.pack()
         self.regresar_button = tk.Button(self.agregar_categoria_frame, text="Regresar", command= lambda: self.retornar_admin(self.agregar_categoria_frame))
         self.regresar_button.pack()
@@ -260,7 +263,7 @@ class StopGame:
         self.confirmar_button.pack()
         self.confirmar_button = tk.Button(self.ventana_admin_frame, text="Agregar categoria", command=self.ventana_agregar_categoria)
         self.confirmar_button.pack()
-        self.regresar_button = tk.Button(self.admin_frame, text="Regresar", command= lambda: self.retornar_principal(self.ventana_admin_frame))
+        self.regresar_button = tk.Button(self.ventana_admin_frame, text="Regresar", command= lambda: self.retornar_principal(self.ventana_admin_frame))
         self.regresar_button.pack()
 
 
@@ -276,7 +279,7 @@ class StopGame:
     def guardar_historial_juego(self,ganador_juego: st.Jugador):
         registro = st.Stop.asignar_registro_historial(ganador_juego, self.numero_partida)
         self.lista_registro.append(registro)
-        self.archivo.guardar_lista_historial(self.lista_registro)
+        self.stop.guardar_historial(self.lista_registro)
 
 
     def cerrar_juego(self):

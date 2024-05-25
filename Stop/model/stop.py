@@ -26,14 +26,15 @@ class Historial:
         self.numero_partidas = numero_partidas
 
 class DatosStop:
-    def __init__(self) -> None:
-        self.datos_categoria = open("datos_guardados_categoria.pickle", "wb")
-        self.datos_historial = open("datos_guardados_historial.pickle", "wb")
-    def guardar_lista_categorias(self, lista_categoria: list[Categoria]):
-        pickle.dump(self.datos_categoria,lista_categoria)
-    def guardar_lista_historial(self, lista_historial: list[Historial]):
-        pickle.dump(self.datos_historial,lista_historial)
-
+    def __init__(self, archivo):
+        self.archivo = archivo
+    def leer_archivo(self):
+        with open(self.archivo ,'rb') as archivo:
+            datos = pickle.load(archivo)
+            return datos
+    def escribir_archivo(self, dato):
+        with open(self.archivo ,'wb') as archivo:
+            pickle.dump(dato, archivo)
 
 class Configuracion:
     def __init__(self,dificultad: str) -> None:
@@ -128,7 +129,7 @@ class Stop:
         return letra
     def jugadores(self, lista_jugadores: list[str]):
         self.jugadores_juego = Multijugador()
-        for nombre in range(lista_jugadores):
+        for nombre in (lista_jugadores):
             lista = self.jugadores_juego.crear_jugador(nombre)
             return lista
     def modificar_palabra(self, palabra:str, lista_categorias: list[Categoria], modificado:str):
@@ -152,6 +153,15 @@ class Stop:
     def asignar_registro_historial(self, jugador: Jugador, partidas: int):
         historial = Historial(jugador, partidas)
         return historial
-    def crear_archivo(self):
-        archivo = DatosStop()
-        return archivo
+    def abrir_archivo_categoria(self):
+        lista_categorias = DatosStop("lista_categoria.pickle")
+        return lista_categorias.leer_archivo()
+    def abrir_archivo_historial(self):
+        lista_historial = DatosStop("lista_historial.pickle")
+        return lista_historial.leer_archivo()
+    def guardar_categorias(self, dato: list[Categoria]):
+        lista_categorias = DatosStop("lista_categoria.pickle")
+        lista_categorias.escribir_archivo(dato)
+    def guardar_historial(self, dato: list[Historial]):
+        lista_historial = DatosStop("lista_historial.pickle")
+        lista_historial.escribir_archivo(dato)
